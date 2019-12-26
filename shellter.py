@@ -127,7 +127,7 @@ def connect():
                 else:
                     result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
 
-                print("\033[91m"+result + "\033[0m\n")         
+                print("\033[92m"+result + "\033[0m\n")         
     
     else:
         print("[-] Password is Incoret")
