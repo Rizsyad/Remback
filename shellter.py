@@ -40,7 +40,8 @@ def banner():
 def help():
     print( Fore.WHITE + "\n[" + Fore.RED + "+" + Fore.WHITE + "] " + Fore.WHITE + "Command: ")
 
-    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "Info\t\t\t: information gathering")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "info\t\t\t: information gathering")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "show\t\t\t: show dir and folder User-Friendly")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "download <file>\t\t: download file ")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "upload <path/file>\t\t: download file ")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "cd <dir>\t\t\t: change directory ")
